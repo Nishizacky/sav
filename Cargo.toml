@@ -1,0 +1,26 @@
+[package]
+name = "sav-vcs"
+version = "0.1.1"
+edition = "2024"
+description = "A lightweight document version control system with auto-generated comment prompting and local TOML configuration."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Nishizacky/sav"
+keywords = ["vcs", "version-control", "markdown", "typst", "snapshot"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "sav"
+path = "src/main.rs"
+
+[dependencies]
+blake3 = "1.8.5"
+chrono = "0.4.45"
+clap = { version = "4.6.1", features = ["derive"] }
+rand = "0.10.1"
+rusqlite = "0.40.1"
+similar = "3.1.1"
+zstd = "0.13.3"
+serde = { version = "1.0", features = ["derive"] }
+toml = "0.8"
+glob = "0.3"
