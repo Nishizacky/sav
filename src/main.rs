@@ -264,13 +264,23 @@ fn init_db() -> std::result::Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-/// Generates a randomized, unique snapshot name using adjectives and nouns.
+/// Generates a randomized, unique snapshot name using adjectives, nouns, and a 4-character suffix.
 fn generate_unique_name(conn: &Connection) -> Result<String> {
+    const CHARS: &[char] = &[
+        'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
+        '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'
+    ];
     let mut rng = rand::rng();
     loop {
         let adj = ADJECTIVES.choose(&mut rng).unwrap();
         let noun = NOUNS.choose(&mut rng).unwrap();
-        let name = format!("{}-{}", adj, noun);
+        let mut suffix = String::new();
+        for _ in 0..4 {
+            if let Some(&c) = CHARS.choose(&mut rng) {
+                suffix.push(c);
+            }
+        }
+        let name = format!("{}-{}-{}", adj, noun, suffix);
         let mut stmt = conn.prepare("SELECT 1 FROM snapshots WHERE name = ?")?;
         if !stmt.exists(params![name])? {
             return Ok(name);
@@ -515,20 +525,36 @@ fn restore_snapshot(name: &str, target_path: Option<&str>) -> std::result::Resul
 
     let conn = Connection::open(db_path)?;
 
-    // スナップショットの存在確認とID取得
-    let mut stmt = conn.prepare("SELECT id FROM snapshots WHERE name = ?")?;
-    let snapshot_id: i64 = match stmt.query_row(params![name], |row| row.get(0)) {
-        Ok(id) => id,
-        Err(_) => {
-            let is_ja = is_japanese();
-            if is_ja {
-                eprintln!("エラー: スナップショット '{}' が見つかりません。", name);
-            } else {
-                eprintln!("Error: Snapshot '{}' not found.", name);
+    // Check if target snapshot exists and get its ID
+    let snapshot_id: i64 = {
+        let mut stmt = conn.prepare("SELECT id FROM snapshots WHERE name = ?")?;
+        match stmt.query_row(params![name], |row| row.get(0)) {
+            Ok(id) => id,
+            Err(_) => {
+                let is_ja = is_japanese();
+                if is_ja {
+                    eprintln!("エラー: スナップショット '{}' が見つかりません。", name);
+                } else {
+                    eprintln!("Error: Snapshot '{}' not found.", name);
+                }
+                return Ok(());
             }
-            return Ok(());
         }
     };
+
+    // Drop connection before save_snapshot to avoid database lock contention
+    drop(conn);
+
+    // Auto-save current state before restore
+    let auto_memo = if is_japanese() {
+        format!("[自動セーブ] {} への復元前", name)
+    } else {
+        format!("[Auto-save] Before restoring to {}", name)
+    };
+    save_snapshot(Some(&auto_memo))?;
+
+    // Re-open connection for the rest of restore
+    let conn = Connection::open(db_path)?;
 
     if let Some(specific_path) = target_path {
         let clean_path = Path::new(specific_path).strip_prefix("./").unwrap_or(Path::new(specific_path));

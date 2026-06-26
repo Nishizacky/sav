@@ -16,6 +16,8 @@
 4. **Diff & Restore**:
    - Compare local files with any past snapshot using `sav diff <snapshot_name>`.
    - Restore a specific file or all files using `sav restore <snapshot_name> [file_path]`.
+5. **Automatic Safety Restore (Auto-save)**:
+   - When restoring, if there are uncommitted modifications in your workspace, `sav` automatically takes a silent snapshot (`[Auto-save] Before restoring to <snapshot>`) beforehand to guarantee your work is never lost.
 
 ---
 
@@ -97,6 +99,8 @@ sav restore <snapshot_name>
 sav restore <snapshot_name> <file_path>
 ```
 
+*Note: If there are uncommitted changes in the repository, `sav` automatically saves them in a silent snapshot before restoring.*
+
 ---
 
 ## Configuration File (`.sav.toml`)
@@ -133,6 +137,8 @@ exclude = [
    - データベースの保存先パス（`db_path`）と除外パターン（`exclude`、Glob形式）をプロジェクト単位で柔軟にカスタマイズできます。
 4. **差分と復元**:
    - 任意の過去スナップショットとの差分を表示したり（`sav diff`）、スナップショットから特定のファイルまたはプロジェクト全体を復元（`sav restore`）できます。
+5. **復元時の自動安全バックアップ（自動セーブ）**:
+   - スナップショットを復元する際、ワークスペース内に未保存の変更がある場合、自動的にバックアップ（`[自動セーブ] <復元先> への復元前`）を保存してから復元を行います。これにより、書きかけのデータが上書きされて失われるのを防ぎます。
 
 ---
 
@@ -213,6 +219,8 @@ sav restore <スナップショット名>
 # 特定のファイルのみを復元
 sav restore <スナップショット名> <ファイルパス>
 ```
+
+*※ 未コミットの変更がある場合、復元を実行する前に自動的にバックアップスナップショットが作成されます。*
 
 ---
 
